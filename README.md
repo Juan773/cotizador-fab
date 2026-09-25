@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cotizador Spacio Home
 
-## Getting Started
+Herramienta web para crear, guardar y generar en Excel las cotizaciones de diseño integral, usando como plantilla el Excel original (`COTIZACIÓN DE DISEÑO_LUCERO GODOY - copia.xlsx`).
 
-First, run the development server:
+Flujo: **Crear cotización → Guardar → Generar Excel → Consultar historial** (abrir, editar, duplicar y volver a descargar).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Tecnologías
+
+- Next.js 15 (App Router) + React + TypeScript + Tailwind CSS
+- Supabase (Postgres) para el historial, al que solo se accede desde el servidor
+- JSZip para generar el Excel editando directamente el XML de la plantilla
+
+## Reglas de cálculo (idénticas a la plantilla)
+
+| Celda | Fórmula | Significado |
+|---|---|---|
+| K20… | `N × O` | Costo del ambiente = área (m²) × precio por m² |
+| K25 | `SUM(K20:K…)` | Monto total |
+| K26 | `K25 × 0.18` | IGV 18 % |
+| K27 | `K25 + K26` | Total con IGV |
+| K30 | `K27 × J30` | Cierre de contrato (80 % por defecto) |
+| K31 | `J31 × K27` | Antes de los entregables (20 % por defecto) |
+| R… | `S × T` | Mismo cálculo a precio de lista (S/ 80/m²), en columnas auxiliares no impresas |
+
+## Puesta en marcha
+
+1. **Supabase:** crea un proyecto y ejecuta `supabase/schema.sql` en *SQL Editor*.
+2. **Variables de entorno:** copia `.env.example` a `.env.local` y completa:
+   - `SUPABASE_URL`: *Project Settings → API → Project URL*
+   - `SUPABASE_SECRET_KEY`: *Project Settings → API Keys → secret key* (o la clave `service_role`). Nunca se envía al navegador.
+3. Ejecuta:
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+## Despliegue en Vercel
+
+1. Sube el proyecto a un repositorio de GitHub e impórtalo en Vercel (framework: Next.js, sin configuración extra).
+2. En *Settings → Environment Variables*, agrega `SUPABASE_URL` y `SUPABASE_SECRET_KEY`.
+3. Despliega. El build es `npm run build`.
+
+## Estructura
+
+```
+src/
+  app/                    páginas (nueva, historial, editar) y acciones del servidor
+  components/             editor, tabla de ambientes, resumen, selector de imagen…
+  lib/cotizacion/         constantes de la plantilla, cálculos, cotización nueva
+  lib/excel/              generador del Excel a partir de la plantilla
+  lib/supabase/           cliente de Supabase (solo servidor)
+  services/               acceso a datos (Supabase) y descarga del Excel (navegador)
+  types/                  tipos
+public/plantilla-cotizacion.xlsx   plantilla derivada del Excel original
+scripts/                  preparar la plantilla y probar el generador
+supabase/schema.sql       tablas
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Plantilla de Excel
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`public/plantilla-cotizacion.xlsx` se genera a partir del Excel original con:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run plantilla
+```
 
-## Learn More
+Este paso no modifica el original. Solo elimina:
 
-To learn more about Next.js, take a look at the following resources:
+- 36 722 formas invisibles que inflaban el archivo;
+- los planos y los datos personales del cliente de ejemplo;
+- la caché de cálculo.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+El diseño se conserva intacto. Si cambias el Excel original (textos fijos, logo, cuentas bancarias, colores), vuelve a ejecutar el comando.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Para probar el generador contra los valores del original:
 
-## Deploy on Vercel
+```bash
+npm run probar:excel
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Los archivos resultantes se guardan en `salida-pruebas/`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Por qué no ExcelJS:** al reescribir el archivo descarta los rectángulos redondeados, la imagen EMF de las cuentas bancarias y la configuración de impresora de la plantilla. El generador propio modifica solo las celdas, filas, celdas combinadas, área de impresión e imágenes necesarias; todo lo demás queda igual que en la plantilla.

@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+!.env.example
+
+# pruebas del generador
+/salida-pruebas
+
+# Excel original con datos de clientes
+*LUCERO GODOY*.xlsx
