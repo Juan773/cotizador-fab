@@ -39,7 +39,7 @@ const CAMPOS_CONDICIONES: { campo: keyof Condiciones; texto: string }[] = [
 export default function EditorCotizacion({ inicial, clientes, aviso }: Props) {
   const [cot, setCot] = useState<Cotizacion>(inicial);
   const [sucio, setSucio] = useState(!inicial.id);
-  const [ocupado, setOcupado] = useState<"guardar" | "excel" | null>(null);
+  const [ocupado, setOcupado] = useState<"guardar" | "excel" | "pdf" | null>(null);
   const [mensaje, setMensaje] = useState<Mensaje>(aviso ? { tipo: "info", texto: aviso } : null);
 
   const totales = useMemo(() => calcularTotales(cot), [cot]);
@@ -93,16 +93,18 @@ export default function EditorCotizacion({ inicial, clientes, aviso }: Props) {
     }
   }
 
-  async function generarExcel() {
+  async function descargar(formato: "excel" | "pdf") {
     // El número de cotización se asigna al guardar, por eso primero se guardan los cambios.
     const c = sucio || !cot.id ? await guardar() : cot;
     if (!c) return;
-    setOcupado("excel");
+    const nombre = formato === "excel" ? "Excel" : "PDF";
+    setOcupado(formato);
     try {
-      await descargarExcel(c);
-      setMensaje({ tipo: "ok", texto: `Excel de ${c.numero} generado.` });
+      if (formato === "excel") await descargarExcel(c);
+      else await (await import("@/services/pdf-navegador")).descargarPdf(c);
+      setMensaje({ tipo: "ok", texto: `${nombre} de ${c.numero} generado.` });
     } catch (e) {
-      setMensaje({ tipo: "error", texto: `No se pudo generar el Excel: ${(e as Error).message}` });
+      setMensaje({ tipo: "error", texto: `No se pudo generar el ${nombre}: ${(e as Error).message}` });
     } finally {
       setOcupado(null);
     }
@@ -111,10 +113,13 @@ export default function EditorCotizacion({ inicial, clientes, aviso }: Props) {
   const botones = (
     <>
       <button type="button" className="btn-secundario flex-1" onClick={guardar} disabled={ocupado !== null}>
-        {ocupado === "guardar" ? "Guardando…" : "Guardar cotización"}
+        {ocupado === "guardar" ? "Guardando…" : <Etiqueta corta="Guardar" larga="Guardar cotización" />}
       </button>
-      <button type="button" className="btn-primario flex-1" onClick={generarExcel} disabled={ocupado !== null}>
-        {ocupado === "excel" ? "Generando…" : "Generar Excel"}
+      <button type="button" className="btn-primario flex-1" onClick={() => descargar("excel")} disabled={ocupado !== null}>
+        {ocupado === "excel" ? "Generando…" : <Etiqueta corta="Excel" larga="Generar Excel" />}
+      </button>
+      <button type="button" className="btn-primario flex-1" onClick={() => descargar("pdf")} disabled={ocupado !== null}>
+        {ocupado === "pdf" ? "Generando…" : <Etiqueta corta="PDF" larga="Descargar PDF" />}
       </button>
     </>
   );
@@ -286,6 +291,16 @@ export default function EditorCotizacion({ inicial, clientes, aviso }: Props) {
         <div className="flex gap-2">{botones}</div>
       </div>
     </div>
+  );
+}
+
+/** Texto corto en la barra móvil y completo en escritorio. */
+function Etiqueta({ corta, larga }: { corta: string; larga: string }) {
+  return (
+    <>
+      <span className="lg:hidden">{corta}</span>
+      <span className="hidden lg:inline">{larga}</span>
+    </>
   );
 }
 

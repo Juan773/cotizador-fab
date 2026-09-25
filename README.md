@@ -2,13 +2,14 @@
 
 Herramienta web para crear, guardar y generar en Excel las cotizaciones de diseño integral, usando como plantilla el Excel original (`COTIZACIÓN DE DISEÑO_LUCERO GODOY - copia.xlsx`).
 
-Flujo: **Crear cotización → Guardar → Generar Excel → Consultar historial** (abrir, editar, duplicar y volver a descargar).
+Flujo: **Crear cotización → Guardar → Generar Excel o PDF → Consultar historial** (abrir, editar, duplicar y volver a descargar).
 
 ## Tecnologías
 
 - Next.js 15 (App Router) + React + TypeScript + Tailwind CSS
 - Neon (Postgres serverless) para el historial, con acceso solo desde el servidor (driver `postgres`)
 - JSZip para generar el Excel editando directamente el XML de la plantilla
+- @react-pdf/renderer para el PDF: mismo diseño que el área de impresión (A1:L42), sin las columnas auxiliares N:Y. Se genera en el navegador
 
 ## Reglas de cálculo (idénticas a la plantilla)
 
@@ -46,6 +47,7 @@ src/
   components/             editor, tabla de ambientes, resumen, selector de imagen…
   lib/cotizacion/         constantes de la plantilla, cálculos, cotización nueva
   lib/excel/              generador del Excel a partir de la plantilla
+  lib/pdf/                documento PDF de la cotización
   lib/db.ts               conexión a Postgres/Neon (solo servidor)
   services/               acceso a datos (SQL) y descarga del Excel (navegador)
   types/                  tipos

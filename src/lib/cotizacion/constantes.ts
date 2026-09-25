@@ -40,3 +40,25 @@ export function descripcionDefecto(area: number | string = ""): string {
     ". Portafolio de Diseño (Renders).",
   ].join("\n");
 }
+
+/** J2 */
+export const TITULO_COTIZACION = "COTIZACIÓN DE DISEÑO INTEGRAL";
+
+/** E3:E6 (cabecera de la empresa) */
+export const EMPRESA = {
+  lineas: [
+    "MUEBLES SPACIO HOME E.I.R.L - RUC: 20608536192",
+    "TEL:  962 346 642  -  959 798 880",
+    "DIRECION:  CALLE MARIANO ODICIO 153 - SURQUILLO",
+    "EMAIL: mueblespaciohome@gmail.com - admspaciohomee@gmail.com",
+  ],
+  /** Texto de la imagen EMF de la plantilla (B35:E41). */
+  cuentas: [
+    ["BBVA CUENTA DE AHORRO:", "0011 0234 0100036226"],
+    ["BBVA CCI:", "011 234 000100036226 27"],
+    ["INTERBANK CUENTA CORRIENTE:", "2003003689296"],
+    ["INTERBANK CCI:", "00320000300368929633"],
+    ["INTERBANK DÓLARES", "2003003689309"],
+    ["INTERBANK DÓLARES CCI", "00320000300368930934"],
+  ],
+};

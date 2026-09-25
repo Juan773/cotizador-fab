@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AvisoConfiguracion from "@/components/AvisoConfiguracion";
-import BotonExcel from "@/components/BotonExcel";
+import BotonDescarga from "@/components/BotonDescarga";
 import { listarCotizaciones } from "@/services/cotizaciones";
 import { formatoFecha, formatoSoles } from "@/lib/utils";
 import type { CotizacionResumen } from "@/types/cotizacion";
@@ -22,7 +22,7 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Historial de cotizaciones</h1>
-          <p className="text-sm text-stone-500">Busca, abre, edita, duplica o vuelve a generar el Excel.</p>
+          <p className="text-sm text-stone-500">Busca, abre, edita, duplica o vuelve a descargar el Excel o el PDF.</p>
         </div>
         <Link href="/" className="btn-primario">
           ＋ Nueva cotización
@@ -72,7 +72,7 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
                     </Link>
                   </td>
                   <td className="w-full md:w-auto md:px-4 md:py-3">
-                    <div className="font-medium text-stone-900">{c.clienteNombre || c.clienteEmpresa}</div>
+                    <div className="font-medium text-stone-900">{c.clienteNombre || c.clienteEmpresa || <span className="text-stone-400">Sin cliente</span>}</div>
                     {c.clienteNombre && c.clienteEmpresa && <div className="text-xs text-stone-500">{c.clienteEmpresa}</div>}
                   </td>
                   <td className="text-stone-600 md:px-4 md:py-3">{formatoFecha(c.fecha)}</td>
@@ -85,7 +85,8 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
                       <Link href={`/?desde=${c.id}`} className="btn-secundario px-3 py-1.5 text-xs">
                         Duplicar
                       </Link>
-                      <BotonExcel id={c.id} />
+                      <BotonDescarga id={c.id} formato="excel" />
+                      <BotonDescarga id={c.id} formato="pdf" />
                     </div>
                   </td>
                 </tr>

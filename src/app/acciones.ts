@@ -7,7 +7,6 @@ import type { Cotizacion } from "@/types/cotizacion";
 type Resultado<T> = { ok: true; datos: T } | { ok: false; error: string };
 
 function validar(c: Cotizacion): string | null {
-  if (!c.cliente.nombre.trim() && !c.cliente.empresa.trim()) return "Ingresa el nombre o la empresa del cliente.";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(c.fecha) || !/^\d{4}-\d{2}-\d{2}$/.test(c.fechaVence)) return "Revisa las fechas.";
   if (c.items.length === 0) return "Agrega al menos un ambiente.";
   const numeros = [c.precioListaM2, c.pctAdelanto, c.pctSaldo, ...c.items.flatMap((it) => [it.area, it.precioM2])];
