@@ -5,8 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const enlaces = [
-  { href: "/", texto: "Nueva cotización" },
-  { href: "/cotizaciones", texto: "Historial" },
+  { href: "/", texto: "Nueva cotización", corto: "Nueva" },
+  { href: "/cotizaciones", texto: "Historial", corto: "Historial" },
+  { href: "/carta-garantia", texto: "Carta de garantía", corto: "Garantía" },
 ];
 
 export default function Navegacion() {
@@ -29,7 +30,8 @@ export default function Navegacion() {
                 activo(e.href) ? "bg-white text-stone-950" : "text-stone-300 hover:bg-stone-800 hover:text-white"
               }`}
             >
-              {e.texto}
+              <span className="sm:hidden">{e.corto}</span>
+              <span className="hidden sm:inline">{e.texto}</span>
             </Link>
           ))}
         </nav>

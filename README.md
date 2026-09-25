@@ -2,7 +2,9 @@
 
 Herramienta web para crear, guardar y generar en Excel las cotizaciones de diseño integral, usando como plantilla el Excel original (`COTIZACIÓN DE DISEÑO_LUCERO GODOY - copia.xlsx`).
 
-Flujo: **Crear cotización → Guardar → Generar Excel o PDF → Consultar historial** (abrir, editar, duplicar y volver a descargar).
+Flujo: **Crear cotización → Guardar → Generar Excel o PDF → Consultar historial** (abrir, editar, duplicar y volver a descargar). Antes de cada descarga se puede cambiar el nombre del archivo.
+
+Además, **Carta de garantía** (`/carta-garantia`) genera la carta garantía de servicio en PDF. Los campos configurables son nombre, DNI, fecha de entrega y validez en meses (12 por defecto). Replica `CARTA_GARANTIA_ELIANA_OROS.pdf` con sus imágenes (`public/carta/`) y la fuente Carlito, equivalente libre de Calibri.
 
 ## Tecnologías
 
@@ -47,7 +49,7 @@ src/
   components/             editor, tabla de ambientes, resumen, selector de imagen…
   lib/cotizacion/         constantes de la plantilla, cálculos, cotización nueva
   lib/excel/              generador del Excel a partir de la plantilla
-  lib/pdf/                documento PDF de la cotización
+  lib/pdf/                PDF de la cotización y carta de garantía
   lib/db.ts               conexión a Postgres/Neon (solo servidor)
   services/               acceso a datos (SQL) y descarga del Excel (navegador)
   types/                  tipos

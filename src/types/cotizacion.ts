@@ -83,3 +83,12 @@ export interface CotizacionResumen {
   clienteEmpresa: string;
   total: number;
 }
+
+/** Parámetros de la carta de garantía de servicio. */
+export interface CartaGarantia {
+  nombre: string;
+  dni: string;
+  /** Fecha de entrega, formato ISO yyyy-mm-dd. */
+  fechaEntrega: string;
+  validezMeses: number;
+}

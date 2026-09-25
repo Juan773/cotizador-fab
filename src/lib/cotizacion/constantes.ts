@@ -62,3 +62,18 @@ export const EMPRESA = {
     ["INTERBANK DÓLARES CCI", "00320000300368930934"],
   ],
 };
+
+/** Textos fijos de la carta de garantía (CARTA_GARANTIA_*.pdf). */
+export const CARTA = {
+  empresa: "MUEBLES SPACIO HOME E.I.R.L",
+  ruc: "20608536192",
+  trabajo: "la fabricación e instalación de muebles en melamina y complementos",
+  validezDefecto: 12,
+  condiciones: [
+    "La garantía no aplica si un tercero no autorizado repara el producto.",
+    "La garantía no aplica cuando se comprueba que el daño fue ocasionado por descuido o mala manipulación del cliente y/o terceros no autorizados por Spacio Home.",
+    "La garantía no aplica si el cliente no realiza el pago correspondiente al 100% del contrato.",
+    "La garantía solo aplica a los muebles elaborados por la empresa y entregados en la fecha indicada líneas arriba.",
+  ],
+  firmante: ["JOHNNY HUACHUA", "PINTADO DNI:", "10232596"],
+};

@@ -155,9 +155,14 @@ export async function generarExcel(plantilla: ArrayBuffer | Uint8Array, cot: Cot
   return zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
 }
 
-export function nombreArchivo(cot: Cotizacion): string {
+/** Nombre sugerido sin extensión: COT-000125-EMPRESA-ABC */
+export function nombreBase(cot: Cotizacion): string {
   const cliente = slug(cot.cliente.empresa || cot.cliente.nombre) || "CLIENTE";
-  return `${cot.numero ?? "BORRADOR"}-${cliente}.xlsx`;
+  return `${cot.numero ?? "BORRADOR"}-${cliente}`;
+}
+
+export function nombreArchivo(cot: Cotizacion): string {
+  return `${nombreBase(cot)}.xlsx`;
 }
 
 // ============================================================================

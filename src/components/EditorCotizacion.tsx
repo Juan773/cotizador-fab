@@ -6,6 +6,8 @@ import { calcularTotales } from "@/lib/cotizacion/calculos";
 import { formatoSoles } from "@/lib/utils";
 import { guardarCotizacionAccion } from "@/app/acciones";
 import { descargarExcel } from "@/services/excel-navegador";
+import { nombreBase } from "@/lib/excel/generar-excel";
+import { useNombreArchivo } from "./DialogoNombreArchivo";
 import TablaAmbientes from "./TablaAmbientes";
 import ResumenTotales from "./ResumenTotales";
 import CampoNumero from "./CampoNumero";
@@ -43,6 +45,7 @@ export default function EditorCotizacion({ inicial, clientes, aviso }: Props) {
   const [mensaje, setMensaje] = useState<Mensaje>(aviso ? { tipo: "info", texto: aviso } : null);
 
   const totales = useMemo(() => calcularTotales(cot), [cot]);
+  const { pedirNombre, dialogo } = useNombreArchivo();
 
   useEffect(() => {
     if (!sucio) return;
@@ -97,11 +100,13 @@ export default function EditorCotizacion({ inicial, clientes, aviso }: Props) {
     // El número de cotización se asigna al guardar, por eso primero se guardan los cambios.
     const c = sucio || !cot.id ? await guardar() : cot;
     if (!c) return;
+    const nombreArchivo = await pedirNombre(nombreBase(c), formato);
+    if (nombreArchivo === null) return; // cancelado
     const nombre = formato === "excel" ? "Excel" : "PDF";
     setOcupado(formato);
     try {
-      if (formato === "excel") await descargarExcel(c);
-      else await (await import("@/services/pdf-navegador")).descargarPdf(c);
+      if (formato === "excel") await descargarExcel(c, nombreArchivo);
+      else await (await import("@/services/pdf-navegador")).descargarPdf(c, nombreArchivo);
       setMensaje({ tipo: "ok", texto: `${nombre} de ${c.numero} generado.` });
     } catch (e) {
       setMensaje({ tipo: "error", texto: `No se pudo generar el ${nombre}: ${(e as Error).message}` });
@@ -126,6 +131,7 @@ export default function EditorCotizacion({ inicial, clientes, aviso }: Props) {
 
   return (
     <div className="pb-28 lg:pb-0">
+      {dialogo}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{cot.numero ? `Cotización ${cot.numero}` : "Nueva cotización"}</h1>

@@ -1,5 +1,6 @@
 import { calcularTotales } from "@/lib/cotizacion/calculos";
-import { nombreArchivo } from "@/lib/excel/generar-excel";
+import { nombreBase } from "@/lib/excel/generar-excel";
+import { descargarBlob, nombreSeguro } from "./descarga";
 import type { Cotizacion } from "@/types/cotizacion";
 
 let logo: string | null = null;
@@ -15,8 +16,8 @@ async function cargarLogo(): Promise<string> {
   return logo;
 }
 
-/** Genera el PDF de la cotización en el navegador (sin columnas auxiliares) y lo descarga. */
-export async function descargarPdf(cot: Cotizacion): Promise<void> {
+/** Genera el PDF de la cotización en el navegador (sin columnas auxiliares) y lo descarga con el nombre indicado. */
+export async function descargarPdf(cot: Cotizacion, nombre = nombreBase(cot)): Promise<void> {
   // Se carga solo al pedir un PDF para no engordar la página.
   const [{ pdf }, { CotizacionPdf }, imagenLogo] = await Promise.all([
     import("@react-pdf/renderer"),
@@ -24,12 +25,5 @@ export async function descargarPdf(cot: Cotizacion): Promise<void> {
     cargarLogo(),
   ]);
   const blob = await pdf(<CotizacionPdf cot={cot} totales={calcularTotales(cot)} logo={imagenLogo} />).toBlob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nombreArchivo(cot).replace(/\.xlsx$/, ".pdf");
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  descargarBlob(blob, nombreSeguro(nombre, "pdf", nombreBase(cot)));
 }
