@@ -1,5 +1,5 @@
 import "server-only";
-import { supabase } from "@/lib/supabase/servidor";
+import { sql } from "@/lib/db";
 import { calcularTotales, redondear2 } from "@/lib/cotizacion/calculos";
 import { nuevaClave } from "@/lib/utils";
 import type { Cotizacion, CotizacionResumen, DatosCliente } from "@/types/cotizacion";
@@ -113,22 +113,21 @@ function aFila(c: Cotizacion) {
 // Operaciones
 // ---------------------------------------------------------------------------
 
+const COLUMNAS_CLIENTE = "cliente_nombre, cliente_empresa, cliente_documento, cliente_direccion, cliente_telefono, cliente_email";
+
 export async function listarCotizaciones(busqueda = ""): Promise<CotizacionResumen[]> {
-  let q = supabase()
-    .from("cotizaciones")
-    .select("id, numero, fecha, cliente_nombre, cliente_empresa, total")
-    .order("created_at", { ascending: false })
-    .limit(200);
-
-  // Se quitan caracteres con significado especial en los filtros de PostgREST.
-  const texto = busqueda.replace(/[,()*%\\]/g, " ").trim();
-  if (texto) {
-    q = q.or(`numero.ilike.*${texto}*,cliente_nombre.ilike.*${texto}*,cliente_empresa.ilike.*${texto}*,cliente_documento.ilike.*${texto}*`);
-  }
-
-  const { data, error } = await q;
-  if (error) throw new Error(error.message);
-  return data.map((f) => ({
+  const db = sql();
+  const texto = busqueda.trim();
+  // Se escapan los comodines de LIKE para buscar el texto tal cual.
+  const patron = `%${texto.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+  const filas = await db`
+    select id, numero, fecha::text as fecha, cliente_nombre, cliente_empresa, total
+    from cotizaciones
+    ${texto ? db`where numero ilike ${patron} or cliente_nombre ilike ${patron}
+                  or cliente_empresa ilike ${patron} or cliente_documento ilike ${patron}` : db``}
+    order by created_at desc
+    limit 200`;
+  return filas.map((f) => ({
     id: f.id,
     numero: f.numero,
     fecha: f.fecha,
@@ -139,66 +138,51 @@ export async function listarCotizaciones(busqueda = ""): Promise<CotizacionResum
 }
 
 export async function obtenerCotizacion(id: string): Promise<Cotizacion | null> {
-  const { data, error } = await supabase()
-    .from("cotizaciones")
-    .select("*, cotizacion_items(orden, ambiente, descripcion, area, precio_m2, imagen)")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  return data ? aCotizacion(data as FilaCotizacion) : null;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const db = sql();
+  const [fila] = await db`
+    select *, fecha::text as fecha, fecha_vence::text as fecha_vence
+    from cotizaciones where id = ${id}`;
+  if (!fila) return null;
+  const items = await db`
+    select orden, ambiente, descripcion, area, precio_m2, imagen
+    from cotizacion_items where cotizacion_id = ${id} order by orden`;
+  return aCotizacion({ ...fila, cotizacion_items: items } as unknown as FilaCotizacion);
 }
 
-/** Crea o actualiza la cotización (cabecera + ambientes). Los totales se recalculan aquí. */
+/** Crea o actualiza la cotización (cabecera + ambientes) en una sola transacción. Los totales se recalculan aquí. */
 export async function guardarCotizacion(c: Cotizacion): Promise<{ id: string; numero: string }> {
-  const db = supabase();
   const fila = aFila(c);
+  return sql().begin(async (tx) => {
+    const [r] = c.id
+      ? await tx`update cotizaciones set ${tx(fila)}, updated_at = now() where id = ${c.id} returning id, numero`
+      : await tx`insert into cotizaciones ${tx(fila)} returning id, numero`;
+    if (!r) throw new Error("La cotización ya no existe.");
 
-  let id: string;
-  let numero: string;
-  if (c.id) {
-    const { data, error } = await db
-      .from("cotizaciones")
-      .update({ ...fila, updated_at: new Date().toISOString() })
-      .eq("id", c.id)
-      .select("id, numero")
-      .single();
-    if (error) throw new Error(error.message);
-    ({ id, numero } = data);
-    const borrado = await db.from("cotizacion_items").delete().eq("cotizacion_id", id);
-    if (borrado.error) throw new Error(borrado.error.message);
-  } else {
-    const { data, error } = await db.from("cotizaciones").insert(fila).select("id, numero").single();
-    if (error) throw new Error(error.message);
-    ({ id, numero } = data);
-  }
-
-  const items = c.items.map((it, i) => ({
-    cotizacion_id: id,
-    orden: i + 1,
-    ambiente: it.ambiente.trim(),
-    descripcion: it.descripcion,
-    area: it.area,
-    precio_m2: it.precioM2,
-    costo: redondear2(it.area * it.precioM2),
-    imagen: it.imagen,
-  }));
-  const { error } = await db.from("cotizacion_items").insert(items);
-  if (error) throw new Error(error.message);
-
-  return { id, numero };
+    const items = c.items.map((it, i) => ({
+      cotizacion_id: r.id as string,
+      orden: i + 1,
+      ambiente: it.ambiente.trim(),
+      descripcion: it.descripcion,
+      area: it.area,
+      precio_m2: it.precioM2,
+      costo: redondear2(it.area * it.precioM2),
+      imagen: it.imagen,
+    }));
+    await tx`delete from cotizacion_items where cotizacion_id = ${r.id}`;
+    await tx`insert into cotizacion_items ${tx(items)}`;
+    return { id: r.id as string, numero: r.numero as string };
+  });
 }
 
 /** Clientes de cotizaciones anteriores, para autocompletar (sin tabla aparte). */
 export async function clientesAnteriores(): Promise<DatosCliente[]> {
-  const { data, error } = await supabase()
-    .from("cotizaciones")
-    .select("cliente_nombre, cliente_empresa, cliente_documento, cliente_direccion, cliente_telefono, cliente_email")
-    .order("created_at", { ascending: false })
-    .limit(300);
-  if (error) throw new Error(error.message);
+  const db = sql();
+  const filas = await db`
+    select ${db.unsafe(COLUMNAS_CLIENTE)} from cotizaciones order by created_at desc limit 300`;
   const vistos = new Set<string>();
   const clientes: DatosCliente[] = [];
-  for (const f of data) {
+  for (const f of filas) {
     const clave = `${f.cliente_nombre}|${f.cliente_empresa}`.toLowerCase();
     if (!f.cliente_nombre || vistos.has(clave)) continue;
     vistos.add(clave);

@@ -7,7 +7,7 @@ Flujo: **Crear cotización → Guardar → Generar Excel → Consultar historial
 ## Tecnologías
 
 - Next.js 15 (App Router) + React + TypeScript + Tailwind CSS
-- Supabase (Postgres) para el historial, al que solo se accede desde el servidor
+- Neon (Postgres serverless) para el historial, con acceso solo desde el servidor (driver `postgres`)
 - JSZip para generar el Excel editando directamente el XML de la plantilla
 
 ## Reglas de cálculo (idénticas a la plantilla)
@@ -24,10 +24,8 @@ Flujo: **Crear cotización → Guardar → Generar Excel → Consultar historial
 
 ## Puesta en marcha
 
-1. **Supabase:** crea un proyecto y ejecuta `supabase/schema.sql` en *SQL Editor*.
-2. **Variables de entorno:** copia `.env.example` a `.env.local` y completa:
-   - `SUPABASE_URL`: *Project Settings → API → Project URL*
-   - `SUPABASE_SECRET_KEY`: *Project Settings → API Keys → secret key* (o la clave `service_role`). Nunca se envía al navegador.
+1. **Neon:** crea una base de datos (desde Vercel → *Storage* → Neon, o en neon.tech) y ejecuta `db/schema.sql` en su *SQL Editor*.
+2. **Variables de entorno:** copia `.env.example` a `.env.local` y completa `DATABASE_URL` con la cadena de conexión *pooled* de Neon. Nunca se envía al navegador.
 3. Ejecuta:
    ```bash
    npm install
@@ -37,7 +35,7 @@ Flujo: **Crear cotización → Guardar → Generar Excel → Consultar historial
 ## Despliegue en Vercel
 
 1. Sube el proyecto a un repositorio de GitHub e impórtalo en Vercel (framework: Next.js, sin configuración extra).
-2. En *Settings → Environment Variables*, agrega `SUPABASE_URL` y `SUPABASE_SECRET_KEY`.
+2. En *Storage → Create Database → Neon*, conecta la base al proyecto (agrega `DATABASE_URL` sola) y ejecuta `db/schema.sql` en el SQL Editor de Neon. Si la base la creaste en neon.tech, agrega `DATABASE_URL` en *Settings → Environment Variables*.
 3. Despliega. El build es `npm run build`.
 
 ## Estructura
@@ -48,12 +46,12 @@ src/
   components/             editor, tabla de ambientes, resumen, selector de imagen…
   lib/cotizacion/         constantes de la plantilla, cálculos, cotización nueva
   lib/excel/              generador del Excel a partir de la plantilla
-  lib/supabase/           cliente de Supabase (solo servidor)
-  services/               acceso a datos (Supabase) y descarga del Excel (navegador)
+  lib/db.ts               conexión a Postgres/Neon (solo servidor)
+  services/               acceso a datos (SQL) y descarga del Excel (navegador)
   types/                  tipos
 public/plantilla-cotizacion.xlsx   plantilla derivada del Excel original
 scripts/                  preparar la plantilla y probar el generador
-supabase/schema.sql       tablas
+db/schema.sql             tablas
 ```
 
 ## Plantilla de Excel

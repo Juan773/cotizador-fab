@@ -1,8 +1,7 @@
--- Cotizador Spacio Home: ejecutar una vez en Supabase > SQL Editor.
+-- Cotizador Spacio Home: ejecutar una vez en Neon > SQL Editor.
 -- Dos tablas: la cotización (con los datos del cliente tal como se emitieron)
 -- y sus ambientes. Sin usuarios ni permisos: la app accede solo desde el
--- servidor con la clave secreta, por eso RLS queda activado y sin políticas
--- (nadie puede leer/escribir directamente con la clave pública).
+-- servidor con DATABASE_URL.
 
 create table if not exists public.cotizaciones (
   id                  uuid primary key default gen_random_uuid(),
@@ -49,6 +48,3 @@ create table if not exists public.cotizacion_items (
 
 create index if not exists cotizacion_items_cotizacion_idx on public.cotizacion_items (cotizacion_id, orden);
 create index if not exists cotizaciones_created_idx on public.cotizaciones (created_at desc);
-
-alter table public.cotizaciones enable row level security;
-alter table public.cotizacion_items enable row level security;
