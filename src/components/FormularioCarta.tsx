@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CartaGarantia } from "@/types/cotizacion";
 import { CARTA } from "@/lib/cotizacion/constantes";
 import { fechaLarga, hoyISO } from "@/lib/utils";
-import { descargarCarta, nombreCarta } from "@/services/carta-navegador";
+import { descargarCarta, nombreCarta, precargarCarta } from "@/services/carta-navegador";
+import { MENSAJE_VERSION, cuandoEsteLibre, esVersionDesactualizada } from "@/lib/version";
 import { useNombreArchivo } from "./DialogoNombreArchivo";
 import CampoNumero from "./CampoNumero";
 
@@ -18,6 +19,9 @@ export default function FormularioCarta() {
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { pedirNombre, dialogo } = useNombreArchivo();
+  const [recargar, setRecargar] = useState(false);
+
+  useEffect(() => cuandoEsteLibre(precargarCarta), []);
 
   const cambiar = (c: Partial<CartaGarantia>) => setCarta((a) => ({ ...a, ...c }));
 
@@ -29,7 +33,9 @@ export default function FormularioCarta() {
     try {
       await descargarCarta(carta, nombre);
     } catch (e) {
-      setError(`No se pudo generar la carta: ${(e as Error).message}`);
+      const desactualizada = esVersionDesactualizada(e);
+      setRecargar(desactualizada);
+      setError(desactualizada ? MENSAJE_VERSION : `No se pudo generar la carta: ${(e as Error).message}`);
     } finally {
       setGenerando(false);
     }
@@ -95,7 +101,16 @@ export default function FormularioCarta() {
         <button type="button" className="btn-primario w-full" onClick={descargar} disabled={generando}>
           {generando ? "Generando…" : "Descargar PDF"}
         </button>
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200">{error}</p>}
+        {error && (
+          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200">
+            {error}
+            {recargar && (
+              <button type="button" className="btn-primario mt-2 w-full py-1.5" onClick={() => window.location.reload()}>
+                Recargar página
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="tarjeta">

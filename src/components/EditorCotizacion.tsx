@@ -8,6 +8,7 @@ import { guardarCotizacionAccion } from "@/app/acciones";
 import { descargarExcel } from "@/services/excel-navegador";
 import { nombreBase } from "@/lib/excel/generar-excel";
 import { useNombreArchivo } from "./DialogoNombreArchivo";
+import { MENSAJE_VERSION, cuandoEsteLibre, esVersionDesactualizada } from "@/lib/version";
 import TablaAmbientes from "./TablaAmbientes";
 import ResumenTotales from "./ResumenTotales";
 import CampoNumero from "./CampoNumero";
@@ -19,7 +20,7 @@ interface Props {
   aviso?: string;
 }
 
-type Mensaje = { tipo: "ok" | "error" | "info"; texto: string } | null;
+type Mensaje = { tipo: "ok" | "error" | "info"; texto: string; recargar?: boolean } | null;
 
 const CAMPOS_CLIENTE: { campo: keyof DatosCliente; texto: string; tipo?: string; ancho?: string }[] = [
   { campo: "nombre", texto: "Nombre" },
@@ -46,6 +47,9 @@ export default function EditorCotizacion({ inicial, clientes, aviso }: Props) {
 
   const totales = useMemo(() => calcularTotales(cot), [cot]);
   const { pedirNombre, dialogo } = useNombreArchivo();
+
+  // Precarga el generador de PDF para que la descarga no dependa de la versión publicada después.
+  useEffect(() => cuandoEsteLibre(() => import("@/services/pdf-navegador").then((m) => m.precargarPdf()).catch(() => {})), []);
 
   useEffect(() => {
     if (!sucio) return;
@@ -109,7 +113,11 @@ export default function EditorCotizacion({ inicial, clientes, aviso }: Props) {
       else await (await import("@/services/pdf-navegador")).descargarPdf(c, nombreArchivo);
       setMensaje({ tipo: "ok", texto: `${nombre} de ${c.numero} generado.` });
     } catch (e) {
-      setMensaje({ tipo: "error", texto: `No se pudo generar el ${nombre}: ${(e as Error).message}` });
+      setMensaje(
+        esVersionDesactualizada(e)
+          ? { tipo: "error", texto: `${MENSAJE_VERSION} Tu cotización ya está guardada.`, recargar: true }
+          : { tipo: "error", texto: `No se pudo generar el ${nombre}: ${(e as Error).message}` },
+      );
     } finally {
       setOcupado(null);
     }
@@ -317,8 +325,13 @@ function Aviso({ mensaje }: { mensaje: NonNullable<Mensaje> }) {
     info: "bg-sky-50 text-sky-800 ring-sky-200",
   };
   return (
-    <p role="status" className={`rounded-lg px-3 py-2 text-sm ring-1 ${estilos[mensaje.tipo]}`}>
+    <div role="status" className={`rounded-lg px-3 py-2 text-sm ring-1 ${estilos[mensaje.tipo]}`}>
       {mensaje.texto}
-    </p>
+      {mensaje.recargar && (
+        <button type="button" className="btn-primario mt-2 w-full py-1.5" onClick={() => window.location.reload()}>
+          Recargar página
+        </button>
+      )}
+    </div>
   );
 }

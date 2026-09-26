@@ -16,6 +16,11 @@ async function cargarLogo(): Promise<string> {
   return logo;
 }
 
+/** Descarga por adelantado el generador de PDF (se llama al abrir la página). */
+export function precargarPdf(): void {
+  Promise.all([import("@react-pdf/renderer"), import("@/lib/pdf/CotizacionPdf"), cargarLogo()]).catch(() => {});
+}
+
 /** Genera el PDF de la cotización en el navegador (sin columnas auxiliares) y lo descarga con el nombre indicado. */
 export async function descargarPdf(cot: Cotizacion, nombre = nombreBase(cot)): Promise<void> {
   // Se carga solo al pedir un PDF para no engordar la página.

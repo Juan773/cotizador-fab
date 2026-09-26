@@ -12,6 +12,11 @@ export function nombreCarta(carta: CartaGarantia): string {
   return nombre ? `CARTA_GARANTIA_${nombre}` : "CARTA_GARANTIA";
 }
 
+/** Descarga por adelantado el generador de PDF de la carta (se llama al abrir la página). */
+export function precargarCarta(): void {
+  Promise.all([import("@react-pdf/renderer"), import("@/lib/pdf/CartaGarantiaPdf")]).catch(() => {});
+}
+
 /** Genera la carta de garantía en el navegador y la descarga. */
 export async function descargarCarta(carta: CartaGarantia, nombre = nombreCarta(carta)): Promise<void> {
   const [{ pdf }, { CartaGarantiaPdf, registrarFuentesCarta }] = await Promise.all([
